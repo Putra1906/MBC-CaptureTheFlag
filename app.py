@@ -213,9 +213,23 @@ def get_hint(number):
 @app.route('/leaderboard')
 def leaderboard():
     if 'username' not in session: return redirect(url_for('login'))
+    
     with engine.connect() as conn:
-        data = conn.execute(text("SELECT name, score, last_submit FROM leaderboard ORDER BY score DESC, last_submit ASC")).fetchall()
-    return render_template('leaderboard.html', data=[row._mapping for row in data], name=session.get('name'), role=session.get('role'))
+        results = conn.execute(text("SELECT name, score, last_submit FROM leaderboard ORDER BY score DESC, last_submit ASC")).fetchall()
+
+    data = []
+    for row in results:
+        # Ubah baris data menjadi dictionary agar bisa dimodifikasi
+        row_data = dict(row._mapping)
+        
+        # Periksa apakah ada waktu submit
+        if row_data.get('last_submit'):
+            # Tambahkan 7 jam untuk konversi dari UTC ke WIB
+            row_data['last_submit'] = row_data['last_submit'] + timedelta(hours=7)
+        
+        data.append(row_data)
+        
+    return render_template('leaderboard.html', data=data, name=session.get('name'), role=session.get('role'))
 
 @app.route('/admin/responses')
 def view_responses():
