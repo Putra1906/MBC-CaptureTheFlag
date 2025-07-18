@@ -34,9 +34,9 @@
         {% endif %}
 
         <div class="hint-section">
-            {% if not correct %}
+            {% if not correct and challenge.hint_text %}
                 <button id="hint-btn" class="hint-button" {% if hint_taken %}disabled{% endif %}>
-                    {% if hint_taken %}Petunjuk Telah Diambil{% else %}Minta Petunjuk (-{{ HINTS.get('flag'~challenge.id, {}).get('penalty', 5) }} Poin){% endif %}
+                    {% if hint_taken %}Petunjuk Telah Diambil{% else %}Minta Petunjuk (-{{ challenge.hint_penalty }} Poin){% endif %}
                 </button>
                 <div id="hint-display" class="hint-display" style="display: none;"></div>
             {% endif %}
@@ -55,6 +55,7 @@
         // Script untuk melacak waktu aktif
         let sessionStartTime = Date.now();
         function sendTimeData() {
+            if (document.hidden) return; // Jangan kirim jika tab tidak aktif
             const timeSpentInSeconds = (Date.now() - sessionStartTime) / 1000;
             const data = {
                 question_number: {{ challenge.id }},
@@ -63,11 +64,10 @@
             if (navigator.sendBeacon) {
                 navigator.sendBeacon('/api/update_time', JSON.stringify(data));
             }
-            sessionStartTime = Date.now(); // Reset timer for next interval
+            sessionStartTime = Date.now();
         }
         window.addEventListener('beforeunload', sendTimeData);
-        // Kirim data setiap 30 detik untuk akurasi waktu aktif
-        setInterval(sendTimeData, 30000); 
+        setInterval(sendTimeData, 30000);
 
         // Script untuk tombol hint
         document.addEventListener('DOMContentLoaded', function() {

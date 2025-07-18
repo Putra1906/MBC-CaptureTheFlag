@@ -13,7 +13,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # --- SCRIPT BANTU UNTUK MEMBUAT HASH PASSWORD ---
-# Jalankan di komputer lokal: python app.py --generate-hash <password>
 if '--generate-hash' in sys.argv:
     try:
         password_to_hash = sys.argv[sys.argv.index('--generate-hash') + 1]
@@ -267,8 +266,9 @@ def admin_stats():
 def reset_leaderboard():
     if session.get('role') != 'admin': return redirect(url_for('flags'))
     with engine.connect() as conn:
-        conn.execute(text("TRUNCATE TABLE leaderboard RESTART IDENTITY;"))
+        conn.execute(text("TRUNCATE TABLE leaderboard;"))
         conn.commit()
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/logout')
