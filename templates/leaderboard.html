@@ -39,9 +39,11 @@
                         {% else %} #{{ loop.index }}
                         {% endif %}
                     </td>
-                    <td style="font-weight: 600; font-size: 1.1em;">{{ row[0] }}</td>
-                    <td style="font-weight: 700; color: var(--accent-cyan);">{{ row[1] }}</td>
-                    <td style="font-family: var(--font-mono); color: var(--text-secondary);">{{ row[2] }}</td>
+                    <td style="font-weight: 600; font-size: 1.1em;">{{ row.name }}</td>
+                    <td style="font-weight: 700; color: var(--accent-green);">{{ row.score }}</td>
+                    <td style="font-family: var(--font-mono); color: var(--text-secondary);">
+                        {{ row.last_submit.strftime('%Y-%m-%d %H:%M:%S') if row.last_submit else 'N/A' }}
+                    </td>
                 </tr>
                 {% else %}
                 <tr><td colspan="4" style="text-align: center; color:var(--text-secondary);">Belum ada data...</td></tr>
