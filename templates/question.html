@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Tantangan {{ number }} :: CTF</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo">Tantangan {{ '%02d'|format(number) }}</div>
+        <div><span>{{ name }}</span> | <a href="{{ url_for('logout') }}">Logout</a></div>
+    </header>
+    <div class="main-container">
+        <h2>Objective</h2>
+        <p style="font-size: 1.2em; color: var(--text-secondary);">{{ question_text }}</p>
+        <hr style="border-color: var(--glass-border); margin: 2rem 0;">
+        {% if feedback %}
+            <div class="feedback {{ 'success' if correct else 'error' }}">{{ feedback }}</div>
+        {% endif %}
+        {% if not correct %}
+        <form method="POST">
+            <label for="flag">Jawaban Anda</label>
+            <input id="flag" type="text" name="flag" placeholder="Masukkan flag di sini..." required autocomplete="off">
+            <input type="submit" value="Submit Jawaban" class="button">
+        </form>
+        {% endif %}
+        <hr style="border-color: var(--glass-border); margin: 2rem 0;">
+        <div style="display:flex; justify-content:space-between; color:var(--text-secondary);">
+            <p>Skor Anda: <strong style="color:white; font-size:1.2em;">{{ current_score }}</strong></p>
+            <p>Peringkat: <strong style="color:white; font-size:1.2em;">#{{ rank }}</strong></p>
+        </div>
+        <br>
+        <a href="{{ url_for('flags') }}" class="button-link" style="background:transparent; border: 1px solid var(--primary-green); color: var(--primary-green);">Kembali ke Daftar Soal</a>
+    </div>
+    <footer>©PDF</footer>
+
+    <script>
+        let sessionStartTime = Date.now();
+
+        // Fungsi untuk mengirim data waktu
+        function sendTimeData() {
+            const timeSpentInSeconds = (Date.now() - sessionStartTime) / 1000;
+            const data = {
+                question_number: {{ number }},
+                time_spent: timeSpentInSeconds
+            };
+            
+            // Menggunakan navigator.sendBeacon untuk memastikan data terkirim
+            // bahkan saat halaman ditutup.
+            navigator.sendBeacon('/api/update_time', JSON.stringify(data));
+        }
+
+        // Event listener ini akan berjalan saat pengguna akan meninggalkan halaman
+        window.addEventListener('beforeunload', sendTimeData);
+    </script>
+</body>
+</html>

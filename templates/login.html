@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Access Gateway :: CTF</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="main-container" style="max-width: 450px;">
+        <h2>Login Access</h2>
+        {% if error %}
+            <div class="feedback error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <label for="username">User ID</label>
+            <input type="text" id="username" name="username" required autocomplete="off">
+            <label for="password">Access Key</label>
+            <input type="password" id="password" name="password" required>
+            <input type="submit" value="Authenticate" class="button">
+        </form>
+    </div>
+    <footer>©PDF</footer>
+</body>
+</html>
