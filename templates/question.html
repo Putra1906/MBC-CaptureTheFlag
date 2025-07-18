@@ -2,56 +2,103 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Tantangan {{ number }} :: CTF</title>
+    <title>Tantangan {{ '%02d'|format(challenge.id) }} :: MBC CTF</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
-        <div class="logo">Tantangan {{ '%02d'|format(number) }}</div>
-        <div><span>{{ name }}</span> | <a href="{{ url_for('logout') }}">Logout</a></div>
+        <div class="logo">TANTANGAN {{ '%02d'|format(challenge.id) }}</div>
+        <div class="nav-links">
+            <span>{{ name }}</span>
+            <a href="{{ url_for('flags') }}">Kembali ke Hub</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
     </header>
+
     <div class="main-container">
-        <h2>Objective</h2>
-        <p style="font-size: 1.2em; color: var(--text-secondary);">{{ question_text }}</p>
-        <hr style="border-color: var(--glass-border); margin: 2rem 0;">
+        <h2>{{ challenge.title }}</h2>
+        <p style="font-size: 1.3em; color: var(--text-primary); line-height: 1.6;">{{ challenge.question }}</p>
+
+        <hr style="border-color: var(--glass-border); margin: 2.5rem 0;">
+
         {% if feedback %}
             <div class="feedback {{ 'success' if correct else 'error' }}">{{ feedback }}</div>
         {% endif %}
+
         {% if not correct %}
         <form method="POST">
-            <label for="flag">Jawaban Anda</label>
-            <input id="flag" type="text" name="flag" placeholder="Masukkan flag di sini..." required autocomplete="off">
-            <input type="submit" value="Submit Jawaban" class="button">
+            <label for="flag">Flag Submission</label>
+            <input id="flag" type="text" name="flag" placeholder="MBC{...}" required autocomplete="off">
+            <input type="submit" value="Submit Flag" class="button">
         </form>
         {% endif %}
-        <hr style="border-color: var(--glass-border); margin: 2rem 0;">
-        <div style="display:flex; justify-content:space-between; color:var(--text-secondary);">
-            <p>Skor Anda: <strong style="color:white; font-size:1.2em;">{{ current_score }}</strong></p>
-            <p>Peringkat: <strong style="color:white; font-size:1.2em;">#{{ rank }}</strong></p>
+
+        <div class="hint-section">
+            {% if not correct %}
+                <button id="hint-btn" class="hint-button" {% if hint_taken %}disabled{% endif %}>
+                    {% if hint_taken %}Petunjuk Telah Diambil{% else %}Minta Petunjuk (-{{ HINTS.get('flag'~challenge.id, {}).get('penalty', 5) }} Poin){% endif %}
+                </button>
+                <div id="hint-display" class="hint-display" style="display: none;"></div>
+            {% endif %}
         </div>
-        <br>
-        <a href="{{ url_for('flags') }}" class="button-link" style="background:transparent; border: 1px solid var(--primary-green); color: var(--primary-green);">Kembali ke Daftar Soal</a>
+
+        <hr style="border-color: var(--glass-border); margin: 2.5rem 0;">
+
+        <div style="display:flex; justify-content:space-between; color:var(--text-secondary); font-family:var(--font-mono); text-transform:uppercase;">
+            <p>Skor Anda: <strong id="current-score" style="color:white; font-size:1.4em;">{{ current_score }}</strong></p>
+            <p>Peringkat: <strong style="color:white; font-size:1.4em;">#{{ rank }}</strong></p>
+        </div>
     </div>
-    <footer>©PDF</footer>
+    <footer>©PDF 2025</footer>
 
     <script>
+        // Script untuk melacak waktu aktif
         let sessionStartTime = Date.now();
-
-        // Fungsi untuk mengirim data waktu
         function sendTimeData() {
             const timeSpentInSeconds = (Date.now() - sessionStartTime) / 1000;
             const data = {
-                question_number: {{ number }},
+                question_number: {{ challenge.id }},
                 time_spent: timeSpentInSeconds
             };
-            
-            // Menggunakan navigator.sendBeacon untuk memastikan data terkirim
-            // bahkan saat halaman ditutup.
-            navigator.sendBeacon('/api/update_time', JSON.stringify(data));
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/api/update_time', JSON.stringify(data));
+            }
+            sessionStartTime = Date.now(); // Reset timer for next interval
         }
-
-        // Event listener ini akan berjalan saat pengguna akan meninggalkan halaman
         window.addEventListener('beforeunload', sendTimeData);
+        // Kirim data setiap 30 detik untuk akurasi waktu aktif
+        setInterval(sendTimeData, 30000); 
+
+        // Script untuk tombol hint
+        document.addEventListener('DOMContentLoaded', function() {
+            const hintBtn = document.getElementById('hint-btn');
+            if (hintBtn) {
+                hintBtn.addEventListener('click', async () => {
+                    if (hintBtn.disabled) return;
+                    if (!confirm('Anda yakin ingin menggunakan petunjuk? Ini akan mengurangi skor Anda.')) return;
+
+                    try {
+                        const response = await fetch(`/api/get_hint/{{ challenge.id }}`, { method: 'POST' });
+                        const data = await response.json();
+                        const hintDisplay = document.getElementById('hint-display');
+
+                        if (response.ok) {
+                            hintDisplay.innerText = `PETUNJUK: ${data.hint}`;
+                            hintDisplay.style.display = 'block';
+                            hintBtn.innerText = 'Petunjuk Telah Diambil';
+                            hintBtn.disabled = true;
+                            if(data.new_score !== undefined) {
+                                document.getElementById('current-score').innerText = data.new_score;
+                            }
+                        } else {
+                            alert(`Error: ${data.message || 'Gagal meminta petunjuk.'}`);
+                        }
+                    } catch (error) {
+                        alert('Terjadi kesalahan jaringan.');
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

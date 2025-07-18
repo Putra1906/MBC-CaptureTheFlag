@@ -2,23 +2,28 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Access Gateway :: CTF</title>
+    <title>Access Gateway :: MBC CTF 2025</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="main-container" style="max-width: 450px;">
-        <h2>Login Access</h2>
+    <div class="main-container" style="max-width: 500px; margin-top: 10vh;">
+        <h2 style="border:none; text-align:center; display:block;">MBC Recruitment 2025</h2>
+        <p style="text-align:center; color: var(--text-secondary); margin-bottom: 2rem; font-family: var(--font-mono);">CTF Platform Access Gateway</p>
+        
         {% if error %}
             <div class="feedback error">{{ error }}</div>
         {% endif %}
+        
         <form method="POST">
             <label for="username">User ID</label>
-            <input type="text" id="username" name="username" required autocomplete="off">
+            <input type="text" id="username" name="username" required autocomplete="off" placeholder="masukkan.userid">
+            
             <label for="password">Access Key</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" name="password" required placeholder="************">
+            
             <input type="submit" value="Authenticate" class="button">
         </form>
     </div>
-    <footer>©PDF</footer>
+    <footer>©PDF 2025</footer>
 </body>
 </html>

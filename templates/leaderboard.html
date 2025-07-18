@@ -2,19 +2,20 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Leaderboard :: CTF</title>
+    <title>Leaderboard :: MBC CTF 2025</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
         <div class="logo">LEADERBOARD</div>
-        <div>
-            <span>{{ name }}</span> | <a href="{{ url_for('flags') }}">Challenges</a>
+        <div class="nav-links">
+            <span>Hi, {{ name }}</span>
+            <a href="{{ url_for('flags') }}">Challenges</a>
             {% if role == 'admin' %}
-            | <a href="{{ url_for('view_responses') }}">Admin Console</a>
-            | <a href="{{ url_for('reset_leaderboard') }}" class="admin-link" onclick="return confirm('Anda yakin ingin mereset semua progres?')">Reset</a>
+            <a href="{{ url_for('view_responses') }}">Admin Console</a>
+            <a href="{{ url_for('reset_leaderboard') }}" class="admin-link" onclick="return confirm('Anda yakin ingin mereset semua progres?')">Reset</a>
             {% endif %}
-            | <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
         </div>
     </header>
     <div class="main-container">
@@ -30,18 +31,17 @@
             </thead>
             <tbody>
                 {% for row in data %}
-                <tr style="color: var(--text-primary);">
-                    <td style="font-size:1.2em; font-weight:700;">
-                        {# --- BLOK BARU UNTUK IKON MEDALI --- #}
+                <tr>
+                    <td style="font-size:1.5em; font-weight:700; text-align: center;">
                         {% if loop.index == 1 %} 🥇
                         {% elif loop.index == 2 %} 🥈
                         {% elif loop.index == 3 %} 🥉
                         {% else %} #{{ loop.index }}
                         {% endif %}
                     </td>
-                    <td>{{ row[0] }}</td>
-                    <td style="font-weight: 700;">{{ row[1] }}</td>
-                    <td>{{ row[2] }}</td>
+                    <td style="font-weight: 600; font-size: 1.1em;">{{ row[0] }}</td>
+                    <td style="font-weight: 700; color: var(--accent-cyan);">{{ row[1] }}</td>
+                    <td style="font-family: var(--font-mono); color: var(--text-secondary);">{{ row[2] }}</td>
                 </tr>
                 {% else %}
                 <tr><td colspan="4" style="text-align: center; color:var(--text-secondary);">Belum ada data...</td></tr>
@@ -49,6 +49,6 @@
             </tbody>
         </table>
     </div>
-    <footer>©PDF</footer>
+    <footer>©PDF 2025</footer>
 </body>
 </html>

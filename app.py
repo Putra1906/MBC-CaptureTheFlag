@@ -8,18 +8,33 @@ from dotenv import load_dotenv
 # --- KONFIGURASI APLIKASI ---
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY')
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default-secret-key-for-development')
 DB_NAME = 'leaderboard.db'
 
-# --- MEMUAT DATA SENSITIF DARI .ENV ---
+# --- MEMUAT DATA SENSITIF ---
 try:
     USERS = json.loads(os.getenv('USERS_JSON'))
     CORRECT_FLAGS = json.loads(os.getenv('CORRECT_FLAGS_JSON'))
-except (TypeError, json.JSONDecodeError):
-    print("FATAL ERROR: Pastikan variabel USERS_JSON dan CORRECT_FLAGS_JSON di file .env sudah benar formatnya (JSON satu baris).")
+    HINTS = json.loads(os.getenv('HINTS_JSON'))
+except (TypeError, json.JSONDecodeError) as e:
+    print(f"FATAL ERROR: Pastikan variabel JSON di file .env sudah benar formatnya. Error: {e}")
     exit()
 
-# --- FUNGSI DATABASE (DENGAN KOLOM BARU) ---
+# --- STRUKTUR DATA TANTANGAN ---
+CHALLENGES = [
+    {"id": 1, "title": "Reconnaissance", "points": 10, "difficulty": "Mudah", "question": "Dari hasil pemindaian, IP mana yang terdeteksi melakukan port scanning?"},
+    {"id": 2, "title": "Port Analysis", "points": 10, "difficulty": "Mudah", "question": "Berapa jumlah total port TCP yang ditemukan terbuka pada target?"},
+    {"id": 3, "title": "Service Enumeration", "points": 10, "difficulty": "Mudah", "question": "Tools Nmap menggunakan script (NSE) untuk enumerasi. Apa nama script yang paling relevan dengan layanan web?"},
+    {"id": 4, "title": "Log Analysis: SSH", "points": 10, "difficulty": "Sedang", "question": "Sebuah aktivitas brute force terdeteksi pada layanan SSH. Dari IP mana serangan itu berasal?"},
+    {"id": 5, "title": "Credential Guessing", "points": 10, "difficulty": "Sedang", "question": "Apa username yang paling sering digunakan dalam serangan brute force SSH tersebut?"},
+    {"id": 6, "title": "Timestamp Forensics", "points": 10, "difficulty": "Sedang", "question": "Pada jam berapa (timestamp paling awal) serangan brute force SSH dimulai?"},
+    {"id": 7, "title": "Web Shell Detection", "points": 10, "difficulty": "Sulit", "question": "Sebuah file mencurigakan diunggah ke server. Apa nama file tersebut?"},
+    {"id": 8, "title": "File Forensics", "points": 10, "difficulty": "Sulit", "question": "Berapakah ukuran file mencurigakan tersebut dalam bytes?"},
+    {"id": 9, "title": "Hashing", "points": 10, "difficulty": "Sulit", "question": "Ekstrak hash SHA256 dari file mencurigakan tersebut."},
+    {"id": 10, "title": "Payload Analysis", "points": 10, "difficulty": "Expert", "question": "Di dalam file yang diunggah, terdapat sebuah domain tersembunyi yang digunakan sebagai C2 Server. Apa domain tersebut?"}
+]
+
+# --- FUNGSI DATABASE ---
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
         conn.execute('''
@@ -28,12 +43,13 @@ def init_db():
                 name TEXT,
                 score INTEGER DEFAULT 0,
                 last_submit TEXT,
-                answers TEXT,
-                active_times TEXT DEFAULT '{}'  -- KOLOM BARU
+                answers TEXT DEFAULT '{}',
+                used_hints TEXT DEFAULT '{}',
+                active_times TEXT DEFAULT '{}'
             )
         ''')
 
-# --- HALAMAN LOGIN (DENGAN PENYESUAIAN) ---
+# --- HALAMAN LOGIN ---
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if 'username' in session:
@@ -45,108 +61,117 @@ def login():
         user = USERS.get(username)
         
         if user and user['password'] == password:
+            session.clear()
             session['username'] = username
             session['name'] = user['name']
             session['role'] = user['role']
             
-            # Pastikan user ada di DB untuk tracking waktu
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT username FROM leaderboard WHERE username = ?", (username,))
                 if cursor.fetchone() is None:
                     cursor.execute("INSERT INTO leaderboard (username, name) VALUES (?, ?)", (username, user['name']))
-
             return redirect(url_for('flags'))
-        return render_template('login.html', error='Username atau password salah')
+        return render_template('login.html', error='User ID atau Access Key salah.')
     return render_template('login.html')
 
 # --- HALAMAN UTAMA (DAFTAR SOAL) ---
 @app.route('/flags')
 def flags():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    return render_template('flags.html', name=session.get('name'))
+    if 'username' not in session: return redirect(url_for('login'))
+    
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT answers FROM leaderboard WHERE username = ?", (session['username'],))
+        row = cursor.fetchone()
+        solved_flags = json.loads(row[0] if row and row[0] else '{}').keys()
 
-# --- HALAMAN PERTANYAAN CTF ---
+    return render_template('flags.html', 
+                           name=session.get('name'), 
+                           challenges=CHALLENGES,
+                           solved_flags=solved_flags,
+                           role=session.get('role'))
+
+# --- HALAMAN PERTANYAAN ---
 @app.route('/question/<int:number>', methods=['GET', 'POST'])
 def question(number):
-    if 'username' not in session:
-        return redirect(url_for('login'))
+    if 'username' not in session: return redirect(url_for('login'))
 
-    questions = [
-        "IP mana yang bertanggung jawab melakukan aktivitas pemindaian port?",
-        "Berapa jumlah port terbuka yang terdeteksi?",
-        "Apa nama tools yang digunakan untuk scanning?",
-        "IP mana yang bertanggung jawab melakukan aktivitas pemindaian port?",
-        "IP mana yang mencoba login SSH berulang kali?",
-        "Apa username yang digunakan untuk brute force SSH?",
-        "Waktu (timestamp) serangan terjadi pada jam berapa?",
-        "Apakah ada file mencurigakan yang di-upload? (jawab: ya/tidak)",
-        "Apa nama file mencurigakan tersebut?",
-        "Apa hash SHA256 dari file mencurigakan?"
-    ]
+    challenge = next((c for c in CHALLENGES if c['id'] == number), None)
+    if not challenge: return redirect(url_for('flags'))
+
     flag_key = f"flag{number}"
-    
-    start_time_key = f'start_time_q{number}'
+    start_time_key = f'start_time_{flag_key}'
+
     if start_time_key not in session:
         session[start_time_key] = datetime.now().isoformat()
 
     feedback = None
     correct = False
 
-    if request.method == 'POST':
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT score, answers, used_hints FROM leaderboard WHERE username=?", (session['username'],))
+        row = cursor.fetchone()
+        current_score = row[0] if row else 0
+        answers = json.loads(row[1] if row and row[1] else '{}')
+        used_hints = json.loads(row[2] if row and row[2] else '{}')
+
+    if flag_key in answers:
+        correct = True
+        feedback = '✅ Tantangan ini telah Anda selesaikan.'
+
+    if request.method == 'POST' and not correct:
         user_flag = request.form['flag'].strip()
         
-        start_time = datetime.fromisoformat(session.get(start_time_key))
-        submit_time = datetime.now()
-        duration = str(timedelta(seconds=int((submit_time - start_time).total_seconds())))
-
         if user_flag == CORRECT_FLAGS.get(flag_key):
             correct = True
+            submit_time = datetime.now()
             timestamp = submit_time.strftime("%Y-%m-%d %H:%M:%S")
+
+            start_time = datetime.fromisoformat(session.get(start_time_key))
+            total_duration = str(timedelta(seconds=int((submit_time - start_time).total_seconds())))
             
             with sqlite3.connect(DB_NAME) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT score, answers FROM leaderboard WHERE username = ?", (session['username'],))
-                row = cursor.fetchone()
-                score, answers = (row[0], json.loads(row[1] or '{}')) if row else (0, {})
+                score_to_add = challenge.get('points', 10)
+                score, current_answers = (current_score, answers)
 
-                if flag_key not in answers:
-                    score += 10
-                    # Simpan durasi total saat jawaban benar
-                    answers[flag_key] = {"answer": user_flag, "duration": duration, "timestamp": timestamp}
-                    feedback = f'✅ Jawaban benar! +10 Poin'
+                if flag_key not in current_answers:
+                    score += score_to_add
+                    current_answers[flag_key] = {
+                        "answer": user_flag, 
+                        "timestamp": timestamp,
+                        "duration": total_duration
+                    }
+                    feedback = f'✅ Flag Benar! +{score_to_add} Poin'
                     
-                    if row:
-                        cursor.execute("UPDATE leaderboard SET score=?, last_submit=?, answers=? WHERE username=?",
-                                       (score, timestamp, json.dumps(answers), session['username']))
-                    else:
-                        cursor.execute("INSERT INTO leaderboard (username, name, score, last_submit, answers) VALUES (?,?,?,?,?)",
-                                       (session['username'], session['name'], score, timestamp, json.dumps(answers)))
-                else:
-                    feedback = '✅ Soal ini sudah pernah Anda jawab dengan benar.'
+                    cursor.execute("UPDATE leaderboard SET score=?, last_submit=?, answers=? WHERE username=?",
+                                   (score, timestamp, json.dumps(current_answers), session['username']))
+                    current_score = score
         else:
-            feedback = '❌ Jawaban salah. Coba lagi!'
+            feedback = '❌ Flag Salah. Coba lagi!'
 
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT score FROM leaderboard WHERE username=?", (session['username'],))
-        current_score = (row[0] if (row := cursor.fetchone()) else 0)
-        
         cursor.execute("SELECT username FROM leaderboard ORDER BY score DESC, last_submit ASC")
         ranks = {user[0]: i + 1 for i, user in enumerate(cursor.fetchall())}
         current_rank = ranks.get(session['username'], '-')
 
+    # ========== BLOK YANG DIPERBAIKI ==========
     return render_template('question.html',
-                           number=number,
-                           question_text=questions[number-1],
+                           challenge=challenge,
                            feedback=feedback,
                            correct=correct,
                            current_score=current_score,
                            rank=current_rank,
-                           name=session.get('name'))
+                           name=session.get('name'),
+                           hint_taken=flag_key in used_hints,
+                           HINTS=HINTS  # FIX: Kirim kamus HINTS ke template
+                           )
+    # ==========================================
 
-# --- API ENDPOINT BARU UNTUK TRACKING WAKTU AKTIF ---
+# --- API ENDPOINTS ---
 @app.route('/api/update_time', methods=['POST'])
 def update_time():
     if 'username' not in session:
@@ -157,27 +182,63 @@ def update_time():
     time_spent = data.get('time_spent')
     flag_key = f"flag{question_number}"
 
-    if not all([question_number, time_spent]):
+    if not all([question_number, isinstance(time_spent, (int, float))]):
         return jsonify({"status": "bad request"}), 400
 
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT active_times FROM leaderboard WHERE username = ?", (session['username'],))
         row = cursor.fetchone()
-        
-        if not row:
-            return jsonify({"status": "user not found"}), 404
+        if not row: return jsonify({"status": "user not found"}), 404
 
         active_times = json.loads(row[0] or '{}')
-        # Tambahkan waktu sesi ini ke total waktu aktif soal
         active_times[flag_key] = active_times.get(flag_key, 0) + time_spent
         
         cursor.execute("UPDATE leaderboard SET active_times = ? WHERE username = ?",
                        (json.dumps(active_times), session['username']))
-
     return jsonify({"status": "success"})
 
-# --- HALAMAN LEADERBOARD ---
+@app.route('/api/get_hint/<int:number>', methods=['POST'])
+def get_hint(number):
+    if 'username' not in session:
+        return jsonify({"status": "unauthorized"}), 401
+
+    flag_key = f"flag{number}"
+    hint_info = HINTS.get(flag_key)
+    
+    if not hint_info:
+        return jsonify({"status": "not_found", "message": "Petunjuk tidak ditemukan."}), 404
+
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT score, used_hints, answers FROM leaderboard WHERE username = ?", (session['username'],))
+        row = cursor.fetchone()
+        
+        if not row: return jsonify({"status": "error", "message": "User tidak ditemukan."}), 404
+        
+        score, used_hints_json, answers_json = row
+        used_hints = json.loads(used_hints_json or '{}')
+        answers = json.loads(answers_json or '{}')
+
+        if flag_key in answers:
+            return jsonify({"status": "already_solved", "message": "Soal sudah diselesaikan."})
+        
+        if flag_key in used_hints:
+            return jsonify({"status": "already_taken", "hint": hint_info['text']})
+
+        penalty = hint_info.get('penalty', 5)
+        if score < penalty:
+            return jsonify({"status": "insufficient_score", "message": f"Skor tidak cukup! Butuh {penalty} poin."}), 400
+            
+        new_score = score - penalty
+        used_hints[flag_key] = True
+        
+        cursor.execute("UPDATE leaderboard SET score = ?, used_hints = ? WHERE username = ?",
+                       (new_score, json.dumps(used_hints), session['username']))
+
+    return jsonify({"status": "success", "hint": hint_info['text'], "new_score": new_score})
+
+# --- HALAMAN ADMIN & LAINNYA ---
 @app.route('/leaderboard')
 def leaderboard():
     if 'username' not in session:
@@ -188,45 +249,65 @@ def leaderboard():
         data = cursor.fetchall()
     return render_template('leaderboard.html', data=data, name=session.get('name'), role=session.get('role'))
 
-# --- HALAMAN ADMIN (DENGAN DATA WAKTU AKTIF) ---
 @app.route('/admin/responses')
 def view_responses():
-    if session.get('role') != 'admin':
-        return redirect(url_for('flags'))
+    if session.get('role') != 'admin': return redirect(url_for('flags'))
     
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        # Ambil juga kolom active_times
-        cursor.execute("SELECT name, answers, active_times FROM leaderboard ORDER BY score DESC, last_submit ASC")
+        cursor.execute("SELECT name, score, answers, active_times, used_hints FROM leaderboard ORDER BY score DESC, last_submit ASC")
         responses = []
         for row in cursor.fetchall():
-            name, answers_json, active_times_json = row
-            answers = json.loads(answers_json or '{}')
-            active_times = json.loads(active_times_json or '{}')
+            name, score, answers_json, active_times_json, used_hints_json = row
+            answers_data = json.loads(answers_json or '{}')
+            active_times_data = json.loads(active_times_json or '{}')
             
-            # Gabungkan data waktu aktif ke dalam data jawaban
-            for flag_key, answer_data in answers.items():
-                active_seconds = active_times.get(flag_key, 0)
-                # Format waktu aktif menjadi HH:MM:SS
-                answer_data['active_time'] = str(timedelta(seconds=int(active_seconds)))
+            for flag_key, answer_info in answers_data.items():
+                active_seconds = active_times_data.get(flag_key, 0)
+                answer_info['active_time'] = str(timedelta(seconds=int(active_seconds)))
             
-            responses.append({"name": name, "answers": answers})
+            responses.append({
+                "name": name, "score": score, 
+                "answers": answers_data, 
+                "used_hints": json.loads(used_hints_json or '{}')
+            })
 
     return render_template('admin_responses.html', responses=responses, name=session.get('name'))
 
-# --- RESET DAN LOGOUT ---
+@app.route('/admin/stats')
+def admin_stats():
+    if session.get('role') != 'admin': return redirect(url_for('flags'))
+
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT answers FROM leaderboard")
+        all_answers = [json.loads(row[0] or '{}') for row in cursor.fetchall()]
+
+    solve_counts = {f"flag{c['id']}": 0 for c in CHALLENGES}
+    for user_answers in all_answers:
+        for flag_key in user_answers:
+            if flag_key in solve_counts:
+                solve_counts[flag_key] += 1
+    
+    stats_data = []
+    for c in CHALLENGES:
+        flag_key = f"flag{c['id']}"
+        solves = solve_counts.get(flag_key, 0)
+        stats_data.append({
+            "id": c['id'],
+            "title": c['title'],
+            "solves": solves
+        })
+
+    return render_template('admin_stats.html', stats=stats_data, name=session.get('name'))
+
 @app.route('/reset_leaderboard')
 def reset_leaderboard():
-    if session.get('role') != 'admin':
-        return redirect(url_for('flags'))
-    
-    if os.path.exists(DB_NAME):
-        os.remove(DB_NAME) # Hapus file DB untuk reset total
-        init_db()          # Buat ulang dari awal
-        
-    for key in list(session.keys()):
-        session.pop(key)
-            
+    if session.get('role') != 'admin': return redirect(url_for('flags'))
+    db_path = os.path.join(os.path.dirname(__file__), DB_NAME)
+    if os.path.exists(db_path): os.remove(db_path)
+    init_db()
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/logout')

@@ -2,49 +2,57 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Console :: CTF</title>
+    <title>Admin Console :: MBC CTF</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
         <div class="logo">ADMIN CONSOLE</div>
-        <div>
+        <div class="nav-links">
             <span>{{ name }} (Admin)</span>
-            | <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
-            | <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('flags') }}">Challenge Hub</a>
+            <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+            <a href="{{ url_for('admin_stats') }}">Platform Stats</a> <a href="{{ url_for('logout') }}">Logout</a>
         </div>
     </header>
-    <div class="main-container">
+    <div class="main-container" style="max-width: 1400px;">
         <h2>Submission Logs</h2>
         {% for res in responses %}
-            <h3 style="color: #fff; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">{{ res.name }}</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Soal</th>
-                        <th>Jawaban</th>
-                        <th>Waktu Aktif</th> <th>Durasi Total</th> <th>Waktu Submit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for flag, data in res.answers.items()|sort %}
-                    <tr>
-                        <td>{{ flag }}</td>
-                        <td><pre style="background:transparent; border:none; padding:0; color: #e6fef1;">{{ data.answer }}</pre></td>
-                        <td style="color: var(--primary-green); font-weight: 700;">{{ data.active_time or '0:00:00' }}</td>
-                        <td>{{ data.duration }}</td>
-                        <td>{{ data.timestamp }}</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">Belum ada jawaban benar.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <br><br>
+            <div class="admin-card">
+                <h3 class="admin-card-header">
+                    {{ res.name }} <span class="admin-score">(Skor: {{ res.score }})</span>
+                </h3>
+                {% if res.answers %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Soal</th>
+                                <th>Jawaban</th>
+                                <th>Waktu Aktif</th>
+                                <th>Durasi Total</th>
+                                <th>Waktu Submit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for flag, data in res.answers.items()|sort %}
+                            <tr>
+                                <td>{{ flag }}</td>
+                                <td><code>{{ data.answer }}</code></td>
+                                <td style="color: var(--accent-green);">{{ data.active_time or 'N/A' }}</td>
+                                <td style="color: #ffd700;">{{ data.duration or 'N/A' }}</td>
+                                <td>{{ data.timestamp }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="no-data">Belum ada jawaban benar.</p>
+                {% endif %}
+            </div>
         {% else %}
-            <p style="color:var(--text-secondary);">Belum ada peserta yang submit.</p>
+            <p class="no-data">Belum ada peserta yang submit.</p>
         {% endfor %}
     </div>
-    <footer>©PDF</footer>
+    <footer>©PDF 2025</footer>
 </body>
 </html>
