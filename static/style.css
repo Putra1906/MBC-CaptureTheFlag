@@ -190,6 +190,7 @@ td {
 }
 
 .challenge-card {
+    min-height: 340px;
     background: transparent;
     border: 1px solid var(--glass-border);
     text-decoration: none;
@@ -366,4 +367,188 @@ footer {
     border-radius: 8px;
     color: #a6ffd8;
     font-family: var(--font-mono);
+}
+.stat-bar-container {
+    width: 100%;
+    background: var(--bg-dark-secondary);
+    border-radius: 8px;
+    margin-top: 10px;
+    height: 32px;
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-bar {
+    background: linear-gradient(90deg, var(--accent-green) 0%, #00c97f 100%);
+    color: #000;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1.1em;
+    height: 100%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding-left: 18px;
+    transition: width 0.5s;
+    box-shadow: 0 0 10px var(--accent-green);
+}
+
+/* Input flag dan tombol submit memenuhi lebar card */
+.flag-form-row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+}
+
+.flag-input-long {
+    width: 100%;
+    max-width: 100%;
+    padding: 18px;
+    font-size: 1.15em;
+    background: var(--bg-dark-secondary);
+    color: var(--text-primary);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: border 0.3s;
+    box-sizing: border-box;
+    display: block;
+}
+
+.flag-input-long:focus {
+    border-color: var(--accent-green);
+    outline: none;
+}
+
+.button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 1rem 0;
+    font-size: 1.1em;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+/* Feedback pop-up overlay */
+.feedback-popup {
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    transform: translateX(-50%);
+    min-width: 300px;
+    max-width: 95%;
+    z-index: 10;
+    padding: 1.2rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    text-align: center;
+    border: 2px solid;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-50%) scale(0.95);}
+    to { opacity: 1; transform: translateX(-50%) scale(1);}
+}
+
+.feedback-popup.error {
+    background: rgba(255, 77, 77, 0.15);
+    color: var(--error-color);
+    border-color: var(--error-color);
+}
+
+.feedback-popup.success {
+    background: rgba(0, 255, 127, 0.15);
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.feedback-popup.error::before {
+    content: "✖";
+    font-size: 1.3em;
+    color: var(--error-color);
+}
+.feedback-popup.success::before {
+    content: "✔";
+    font-size: 1.3em;
+    color: var(--success-color);
+}
+.feedback-text {
+    margin-top: 4px;
+    margin-bottom: 0;
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--error-color);
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-weight: 500;
+    text-align: left;
+    display: block;
+    line-height: 1.2;
+    max-height: 1.5em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.badge-success {
+    display: block;
+    margin: 40px auto 0 auto;
+    padding: 18px 0;
+    font-size: 1.1em;
+    text-align: center;
+    color: var(--success-color);
+    background: none;
+    border: none;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropbtn {
+    cursor: pointer;
+    padding: 8px 12px;
+    color: white;
+    font-size: 1em;
+    user-select: none;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #1f1f1f;
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: white;
+    padding: 10px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: #333;
+}
+
+.show {
+    display: block;
 }

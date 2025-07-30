@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8" />
-    <title>Challenge Completion Stats :: Admin</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <meta charset="UTF-8">
+    <title>Edit Challenge :: Admin Console</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
-        <div class="logo">PLATFORM STATS</div>
+        <div class="logo">ADMIN CONSOLE</div>
         <div class="nav-links">
-             {% if role == 'admin' %}
+            {% if role == 'admin' %}
             <div class="dropdown" id="userDropdown">
             <span class="dropbtn" onclick="toggleDropdown()">Hi, {{ name }} &#x25BC;</span>
             <div class="dropdown-content" id="dropdownMenu">
@@ -44,26 +44,30 @@
         }
     }
     </script>
-    <div class="main-container">
-        <h2>Challenge Completion Stats</h2>
-        <p style="color: var(--text-secondary); margin-top: -2rem; margin-bottom: 2rem;">
-            Statistik penyelesaian untuk setiap tantangan. Berguna untuk mengukur tingkat kesulitan soal.
-        </p>
+    <div class="main-container" style="max-width: 700px;">
+        <h2>Edit Challenge: {{ challenge.vm_name }} (ID: {{ challenge.id }})</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="feedback {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <label for="vm_name">VM Name</label>
+            <input type="text" id="vm_name" name="vm_name" value="{{ challenge.vm_name }}" required autocomplete="off">
+            
+            <label for="vm_ip">VM IP Address</label>
+            <input type="text" id="vm_ip" name="vm_ip" value="{{ challenge.vm_ip }}" required autocomplete="off">
 
-        {% set max_solves = (stats|map(attribute='solves')|max) if stats else 0 %}
-        {% for s in stats %}
-        <div class="stat-card">
-            <h3 class="stat-title">{{ '%02d'|format(s.id) }}: {{ s.title }}</h3>
-            <p style="font-family: var(--font-mono); color: var(--text-secondary);">
-                Diselesaikan oleh: <strong style="color: #fff;">{{ s.solves }}</strong> peserta
-            </p>
-            <div class="stat-bar-container">
-                <div class="stat-bar" style="width: {% if max_solves > 0 %}{{ ((s.solves / max_solves) * 100)|int }}{% else %}0{% endif %}%;">
-                    {{ s.solves }}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+            <label for="flag">Correct Flag</label>
+            <input type="text" id="flag" name="flag" value="{{ challenge.flag }}" required autocomplete="off">
+
+            <label for="points">Points</label>
+            <input type="number" id="points" name="points" value="{{ challenge.points }}" required min="1">
+            
+            <input type="submit" value="Update Challenge" class="button">
+        </form>
     </div>
     <footer>©PDF 2025</footer>
 </body>

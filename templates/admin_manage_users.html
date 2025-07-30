@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users :: Admin Console</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: flex-end; /* Align buttons to the right */
+        }
+        .action-buttons .button {
+            padding: 8px 12px;
+            font-size: 0.85em;
+            margin: 0;
+            width: auto;
+        }
+        .action-buttons .button.edit {
+            background: #007bff; /* Blue for edit */
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.4);
+        }
+        .action-buttons .button.delete {
+            background: #dc3545; /* Red for delete */
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.4);
+        }
+        .action-buttons .button.edit:hover {
+            background: #0056b3;
+        }
+        .action-buttons .button.delete:hover {
+            background: #c82333;
+        }
+        .user-table-container {
+            overflow-x: auto; /* Make table scrollable on small screens */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">ADMIN CONSOLE</div>
+        <div class="nav-links">
+            {% if role == 'admin' %}
+            <div class="dropdown" id="userDropdown">
+            <span class="dropbtn" onclick="toggleDropdown()">Hi, {{ name }} &#x25BC;</span>
+            <div class="dropdown-content" id="dropdownMenu">
+                <a href="{{ url_for('admin_console') }}">Admin Console</a>
+                <a href="{{ url_for('view_submission_logs') }}">Submission Logs</a>
+                <a href="{{ url_for('admin_stats') }}">Challenge Stats</a>
+                <a href="{{ url_for('reset_leaderboard') }}" onclick="return confirm('Anda yakin ingin mereset semua progres?')">Reset Leaderboard</a>
+            </div>
+            </div>
+            {% else %}
+            <span>Hi, {{ name }}</span>
+            {% endif %}
+            <a href="{{ url_for('flags') }}">Challenges</a>
+            <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </header>
+     <script>
+    function toggleDropdown() {
+        document.getElementById("dropdownMenu").classList.toggle("show");
+    }
+
+    // Tutup dropdown jika klik di luar
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropbtn')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    }
+    </script>
+    <div class="main-container" style="max-width: 1400px;">
+        <h2>Manage Users</h2>
+        <p style="color: var(--text-secondary); margin-top: -2rem; margin-bottom: 2rem;">
+            View, edit, or delete user accounts.
+        </p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="feedback {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <a href="{{ url_for('admin_add_user') }}" class="button" style="width: auto; margin-bottom: 20px;">Add New User</a>
+
+        <div class="user-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Score</th>
+                        <th>Last Submit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.role }}</td>
+                        <td>{{ user.score if user.score is not none else 'N/A' }}</td>
+                        <td>{{ user.last_submit.strftime('%Y-%m-%d %H:%M:%S') if user.last_submit else 'N/A' }}</td>
+                        <td class="action-buttons">
+                            <a href="{{ url_for('admin_edit_user', username=user.username) }}" class="button edit">Edit</a>
+                            <form action="{{ url_for('admin_delete_user', username=user.username) }}" method="POST" onsubmit="return confirm('Anda yakin ingin menghapus pengguna {{ user.username }}? Ini akan menghapus semua progres mereka.')">
+                                <button type="submit" class="button delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" style="text-align: center; color:var(--text-secondary);">No users found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <footer>©PDF 2025</footer>
+</body>
+</html>

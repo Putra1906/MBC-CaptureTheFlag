@@ -9,40 +9,123 @@
     <header>
         <div class="logo">MBC LABORATORY RECRUITMENT 2025</div>
         <div class="nav-links">
+             {% if role == 'admin' %}
+            <div class="dropdown" id="userDropdown">
+            <span class="dropbtn" onclick="toggleDropdown()">Hi, {{ name }} &#x25BC;</span>
+            <div class="dropdown-content" id="dropdownMenu">
+                <a href="{{ url_for('admin_console') }}">Admin Console</a>
+                <a href="{{ url_for('view_submission_logs') }}">Submission Logs</a>
+                <a href="{{ url_for('admin_stats') }}">Challenge Stats</a>
+                <a href="{{ url_for('reset_leaderboard') }}" onclick="return confirm('Anda yakin ingin mereset semua progres?')">Reset Leaderboard</a>
+            </div>
+            </div>
+            {% else %}
             <span>Hi, {{ name }}</span>
+            {% endif %}
+            <a href="{{ url_for('flags') }}">Challenges</a>
             <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
             <a href="{{ url_for('logout') }}">Logout</a>
         </div>
     </header>
-    
+     <script>
+    function toggleDropdown() {
+        document.getElementById("dropdownMenu").classList.toggle("show");
+    }
+
+    // Tutup dropdown jika klik di luar
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropbtn')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    }
+    </script>
     <div class="main-container">
         <h2>Challenge Hub</h2>
-        
-        <div class="download-box">
-            <p style="color: var(--text-secondary); margin-top: 0; font-size: 1.1em;">
-                Unduh file analisis yang dibutuhkan untuk menyelesaikan tantangan.
-            </p>
-            <a href="{{ url_for('static', filename='kitten.png') }}" download class="button-link" style="background: transparent; border: 1px solid var(--accent-green); color: var(--accent-green);">Download Analysis File</a>
-        </div>
-        
         <div class="challenge-grid">
             {% for challenge in challenges %}
-            <a href="{{ url_for('question', number=challenge.id) }}" class="challenge-card {% if 'flag' ~ challenge.id in solved_flags %}solved{% endif %}">
+            <div class="challenge-card {% if 'flag' ~ challenge.id in solved_flags %}solved{% endif %}" id="card-{{ challenge.id }}">
                 <div class="card-header">
                     <span class="challenge-title">Tantangan {{ '%02d'|format(challenge.id) }}</span>
                     <span class="challenge-points">{{ challenge.points }} PTS</span>
                 </div>
                 <div class="card-body">
-                    <p class="challenge-name">{{ challenge.title }}</p>
+                    <p class="challenge-name"><strong>{{ challenge.vm_name }}</strong></p>
+                    <p style="color:var(--text-secondary); font-size:0.95em;">IP: {{ challenge.vm_ip }}</p>
                 </div>
                 <div class="card-footer">
-                    <span class="challenge-difficulty difficulty-{{ challenge.difficulty|lower }}">{{ challenge.difficulty }}</span>
+                    {% if 'flag' ~ challenge.id in solved_flags %}
+                        <span class="badge badge-success">Sudah Dijawab</span>
+                    {% else %}
+                        <div class="flag-form-row">
+                            <form class="flag-form" data-challenge="{{ challenge.id }}">
+                                <input type="hidden" name="challenge_id" value="{{ challenge.id }}">
+                                <input type="text" name="flag" placeholder="Masukkan flag..." required autocomplete="off" class="flag-input-long">
+                                <div class="feedback-text" id="feedback-{{ challenge.id }}" style="display:none;"></div>
+                                <button type="submit" class="button">Submit Flag</button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
-            </a>
+            </div>
             {% endfor %}
         </div>
     </div>
     
     <footer>©PDF 2025</footer>
+    <script>
+    document.querySelectorAll('.flag-form').forEach(function(form) {
+        var challengeId = form.querySelector('[name="challenge_id"]').value;
+        var inputFlag = form.querySelector('[name="flag"]');
+        var feedbackEl = document.getElementById('feedback-' + challengeId);
+
+        // Hide feedback saat mengetik ATAU input dikosongkan
+        inputFlag.addEventListener('input', function() {
+            if (feedbackEl) {
+                if (inputFlag.value.trim() === "") {
+                    feedbackEl.style.display = "none";
+                    feedbackEl.textContent = "";
+                } else {
+                    feedbackEl.style.display = "none";
+                }
+            }
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var flag = inputFlag.value;
+
+            fetch("{{ url_for('flags') }}", {
+                method: "POST",
+                headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/x-www-form-urlencoded" },
+                body: "challenge_id=" + encodeURIComponent(challengeId) + "&flag=" + encodeURIComponent(flag)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && feedbackEl) {
+                    feedbackEl.textContent = data.message;
+                    feedbackEl.style.display = "block";
+                    feedbackEl.style.color = data.correct ? "#00ff7f" : "#ff4d4d";
+                    inputFlag.value = ""; // <-- Clear input setelah submit
+                    if (data.correct) {
+                        setTimeout(function() { location.reload(); }, 1200);
+                    } else {
+                        setTimeout(function() { feedbackEl.style.display = "none"; }, 3000);
+                        document.addEventListener("mousedown", function hideFeedback(ev) {
+                            if (!feedbackEl.contains(ev.target)) {
+                                feedbackEl.style.display = "none";
+                                document.removeEventListener("mousedown", hideFeedback);
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    });
+    </script>
 </body>
 </html>

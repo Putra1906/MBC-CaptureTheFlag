@@ -2,19 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Console :: MBC CTF</title>
+    <title>Submission Logs :: MBC CTF</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
-        <div class="logo">ADMIN CONSOLE</div>
+        <div class="logo">SUBMISSION LOGS</div>
         <div class="nav-links">
-            <span>{{ name }} (Admin)</span>
-            <a href="{{ url_for('flags') }}">Challenge Hub</a>
+            {% if role == 'admin' %}
+            <div class="dropdown" id="userDropdown">
+            <span class="dropbtn" onclick="toggleDropdown()">Hi, {{ name }} &#x25BC;</span>
+            <div class="dropdown-content" id="dropdownMenu">
+                <a href="{{ url_for('admin_console') }}">Admin Console</a>
+                <a href="{{ url_for('view_submission_logs') }}">Submission Logs</a>
+                <a href="{{ url_for('admin_stats') }}">Challenge Stats</a>
+                <a href="{{ url_for('reset_leaderboard') }}" onclick="return confirm('Anda yakin ingin mereset semua progres?')">Reset Leaderboard</a>
+            </div>
+            </div>
+            {% else %}
+            <span>Hi, {{ name }}</span>
+            {% endif %}
+            <a href="{{ url_for('flags') }}">Challenges</a>
             <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
-            <a href="{{ url_for('admin_stats') }}">Platform Stats</a> <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
         </div>
     </header>
+     <script>
+    function toggleDropdown() {
+        document.getElementById("dropdownMenu").classList.toggle("show");
+    }
+
+    // Tutup dropdown jika klik di luar
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropbtn')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    }
+    </script>
     <div class="main-container" style="max-width: 1400px;">
         <h2>Submission Logs</h2>
         {% for res in responses %}

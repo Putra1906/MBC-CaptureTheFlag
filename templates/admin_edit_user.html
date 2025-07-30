@@ -2,12 +2,12 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Leaderboard :: MBC CTF 2025</title>
+    <title>Edit User :: Admin Console</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header>
-        <div class="logo">LEADERBOARD</div>
+        <div class="logo">ADMIN CONSOLE</div>
         <div class="nav-links">
             {% if role == 'admin' %}
             <div class="dropdown" id="userDropdown">
@@ -27,7 +27,7 @@
             <a href="{{ url_for('logout') }}">Logout</a>
         </div>
     </header>
-    <script>
+     <script>
     function toggleDropdown() {
         document.getElementById("dropdownMenu").classList.toggle("show");
     }
@@ -44,38 +44,33 @@
         }
     }
     </script>
-    <div class="main-container">
-        <h2>Top Operators</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Peringkat</th>
-                    <th>Nama Tim</th>
-                    <th>Skor</th>
-                    <th>Terakhir Aktif</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in data %}
-                <tr>
-                    <td style="font-size:1.5em; font-weight:700; text-align: center;">
-                        {% if loop.index == 1 %} 👿 GOD 👿
-                        {% elif loop.index == 2 %} 🥈
-                        {% elif loop.index == 3 %} 🥉
-                        {% else %} #{{ loop.index }}
-                        {% endif %}
-                    </td>
-                    <td style="font-weight: 600; font-size: 1.1em;">{{ row.name }}</td>
-                    <td style="font-weight: 700; color: var(--accent-green);">{{ row.score }}</td>
-                    <td style="font-family: var(--font-mono); color: var(--text-secondary);">
-                        {{ row.last_submit.strftime('%Y-%m-%d %H:%M:%S') if row.last_submit else 'N/A' }}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4" style="text-align: center; color:var(--text-secondary);">Belum ada data...</td></tr>
+    <div class="main-container" style="max-width: 700px;">
+        <h2>Edit User: {{ user.username }}</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="feedback {{ category }}">{{ message }}</div>
                 {% endfor %}
-            </tbody>
-        </table>
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <label for="username">Username (User ID)</label>
+            <input type="text" id="username" name="username" value="{{ user.username }}" readonly style="background-color: #1a1a1a; cursor: not-allowed;">
+            
+            <label for="name">Team/User Name</label>
+            <input type="text" id="name" name="name" value="{{ user.name }}" required autocomplete="off">
+
+            <label for="role">Role</label>
+            <select id="role" name="role">
+                <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+
+            <label for="password">New Password (Leave blank to keep current)</label>
+            <input type="password" id="password" name="password" placeholder="************">
+            
+            <input type="submit" value="Update User" class="button">
+        </form>
     </div>
     <footer>©PDF 2025</footer>
 </body>
