@@ -57,8 +57,6 @@
                             <tr>
                                 <th>Soal</th>
                                 <th>Jawaban</th>
-                                <th>Waktu Aktif</th>
-                                <th>Durasi Total</th>
                                 <th>Waktu Submit</th>
                             </tr>
                         </thead>
@@ -67,11 +65,10 @@
                             <tr>
                                 <td>{{ flag }}</td>
                                 <td><code>{{ data.answer }}</code></td>
-                                <td style="color: var(--accent-green);">{{ data.active_time or 'N/A' }}</td>
-                                <td style="color: #ffd700;">{{ data.duration or 'N/A' }}</td>
                                 <td>{{ data.timestamp }}</td>
                             </tr>
                             {% endfor %}
+                            <tr> <td colspan="5" style="border:none;"></td> </tr>
                         </tbody>
                     </table>
                 {% else %}

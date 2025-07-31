@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-# from werkzeug.security import generate_password_hash, check_password_hash # Komentar ini untuk development
+from werkzeug.security import generate_password_hash, check_password_hash # Komentar ini untuk development
 
 # --- KONFIGURASI APLIKASI ---
 load_dotenv()
