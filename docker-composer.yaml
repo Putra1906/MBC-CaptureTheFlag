@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    image: mbc-ctf-app:latest
+    container_name: mbc-ctf-web
+    restart: unless-stopped
+    ports:
+      - "5999:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_RUN_HOST=0.0.0.0
+      - FLASK_SECRET_KEY=wong liyo ngerti opo
+      - DATABASE_URL=postgresql://user_ctf:8MRNjK9YGC@postgres-dev-db:5432/ctfdb
+    networks:
+      - dev-postgresql-network
+
+networks:
+  dev-postgresql-network:
+    external: true
